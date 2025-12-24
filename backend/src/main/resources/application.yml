@@ -1,0 +1,13 @@
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+jwt:
+  secret-base64: "dGhpcy1pcy1hLXZlcnktc3Ryb25nLTI1Ni1iaXQtc2VjcmV0LWtleSEh"
+  expiration-ms: 3600000
