@@ -1,17 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
-import axios from "axios";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-
-/* ---------------- AXIOS ---------------- */
-const api = axios.create({ baseURL: BACKEND_URL });
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
+import api from "../api/axios";
 
 /* ---------------- STYLES ---------------- */
 const Page = styled.div`
@@ -116,33 +105,53 @@ export default function AdminStudents() {
     year: "",
     username: "",
   });
+  const [error, setError] = useState("");
 
+  /* ---------- LOAD ---------- */
   const loadStudents = async () => {
-    const res = await api.get("/api/admin/students");
-    setStudents(res.data);
+    setError("");
+    try {
+      const res = await api.get("/api/admin/students");
+      setStudents(res.data);
+    } catch (err) {
+      setError("Failed to load students");
+    }
   };
 
-  useEffect(() => {
-    loadStudents();
-  }, []);
-
+  /* ---------- ADD ---------- */
   const addStudent = async () => {
-    await api.post("/api/admin/students", newStudent);
-    setShowModal(false);
-    setNewStudent({ name: "", department: "", year: "", username: "" });
-    loadStudents();
+    try {
+      await api.post("/api/admin/students", newStudent);
+      setShowModal(false);
+      setNewStudent({
+        name: "",
+        department: "",
+        year: "",
+        username: "",
+      });
+      loadStudents();
+    } catch {
+      alert("Failed to add student");
+    }
   };
 
+  /* ---------- DELETE ---------- */
   const deleteStudent = async (id) => {
     if (!window.confirm("Delete student?")) return;
-    await api.delete(`/api/admin/students/${id}`);
-    loadStudents();
+    try {
+      await api.delete(`/api/admin/students/${id}`);
+      setStudents((prev) => prev.filter((s) => s.id !== id));
+    } catch {
+      alert("Failed to delete student");
+    }
   };
 
-  const filtered = students.filter((s) =>
-    s.name.toLowerCase().includes(filters.name.toLowerCase()) &&
-    s.department.toLowerCase().includes(filters.dept.toLowerCase()) &&
-    (filters.year === "" || String(s.year) === filters.year)
+  /* ---------- FILTER ---------- */
+  const filteredStudents = students.filter(
+    (s) =>
+      s.name.toLowerCase().includes(filters.name.toLowerCase()) &&
+      s.department.toLowerCase().includes(filters.dept.toLowerCase()) &&
+      (filters.year === "" || String(s.year) === filters.year)
   );
 
   return (
@@ -150,63 +159,103 @@ export default function AdminStudents() {
       <Card>
         <Header>
           <Title>Student Management</Title>
-          <Button onClick={() => setShowModal(true)}>Add Student</Button>
+          <div>
+            <Button onClick={loadStudents}>View Students</Button>{" "}
+            <Button onClick={() => setShowModal(true)}>Add Student</Button>
+          </div>
         </Header>
 
-        <Filters>
-          <Input placeholder="Filter by name"
-            value={filters.name}
-            onChange={(e) => setFilters({ ...filters, name: e.target.value })} />
-          <Input placeholder="Filter by department"
-            value={filters.dept}
-            onChange={(e) => setFilters({ ...filters, dept: e.target.value })} />
-          <Input placeholder="Filter by year"
-            value={filters.year}
-            onChange={(e) => setFilters({ ...filters, year: e.target.value })} />
-        </Filters>
+        {error && <p style={{ color: "red" }}>{error}</p>}
 
-        <Table>
-          <thead>
-            <tr>
-              <Th>Name</Th>
-              <Th>Department</Th>
-              <Th>Year</Th>
-              <Th>Roll No</Th>
-              <Th>Action</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((s) => (
-              <tr key={s.id}>
-                <Td>{s.name}</Td>
-                <Td>{s.department}</Td>
-                <Td>{s.year}</Td>
-                <Td>{s.username}</Td>
-                <Td>
-                  <Danger onClick={() => deleteStudent(s.id)}>Delete</Danger>
-                </Td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+        {students.length > 0 && (
+          <>
+            <Filters>
+              <Input
+                placeholder="Filter by name"
+                value={filters.name}
+                onChange={(e) =>
+                  setFilters({ ...filters, name: e.target.value })
+                }
+              />
+              <Input
+                placeholder="Filter by department"
+                value={filters.dept}
+                onChange={(e) =>
+                  setFilters({ ...filters, dept: e.target.value })
+                }
+              />
+              <Input
+                placeholder="Filter by year"
+                value={filters.year}
+                onChange={(e) =>
+                  setFilters({ ...filters, year: e.target.value })
+                }
+              />
+            </Filters>
+
+            <Table>
+              <thead>
+                <tr>
+                  <Th>Name</Th>
+                  <Th>Department</Th>
+                  <Th>Year</Th>
+                  <Th>Roll No</Th>
+                  <Th>Action</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredStudents.map((s) => (
+                  <tr key={s.id}>
+                    <Td>{s.name}</Td>
+                    <Td>{s.department}</Td>
+                    <Td>{s.year}</Td>
+                    <Td>{s.username}</Td>
+                    <Td>
+                      <Danger onClick={() => deleteStudent(s.id)}>
+                        Delete
+                      </Danger>
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </>
+        )}
       </Card>
 
       {showModal && (
         <Overlay>
           <Modal>
             <h3>Add Student</h3>
-            <Input placeholder="Name"
+
+            <Input
+              placeholder="Name"
               value={newStudent.name}
-              onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })} />
-            <Input placeholder="Department"
+              onChange={(e) =>
+                setNewStudent({ ...newStudent, name: e.target.value })
+              }
+            />
+            <Input
+              placeholder="Department"
               value={newStudent.department}
-              onChange={(e) => setNewStudent({ ...newStudent, department: e.target.value })} />
-            <Input placeholder="Year"
+              onChange={(e) =>
+                setNewStudent({ ...newStudent, department: e.target.value })
+              }
+            />
+            <Input
+              placeholder="Year"
               value={newStudent.year}
-              onChange={(e) => setNewStudent({ ...newStudent, year: e.target.value })} />
-            <Input placeholder="Roll Number"
+              onChange={(e) =>
+                setNewStudent({ ...newStudent, year: e.target.value })
+              }
+            />
+            <Input
+              placeholder="Roll Number"
               value={newStudent.username}
-              onChange={(e) => setNewStudent({ ...newStudent, username: e.target.value })} />
+              onChange={(e) =>
+                setNewStudent({ ...newStudent, username: e.target.value })
+              }
+            />
 
             <ModalActions>
               <Button onClick={() => setShowModal(false)}>Cancel</Button>
