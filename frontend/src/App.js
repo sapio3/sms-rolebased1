@@ -7,7 +7,19 @@ import StudentProfile from "./student/StudentProfile";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import AccessDenied from "./pages/AccessDenied";
 
+/* 🔥 DEV ONLY */
+const DEV_RENDER = "ADMIN_STUDENTS";
+// const DEV_RENDER = "STUDENT_PROFILE";
+// const DEV_RENDER = "LOGIN";
+// const DEV_RENDER = null; // ← normal app
+
 function App() {
+  // 🔥 Render ONE page directly (no auth, no router logic)
+  if (DEV_RENDER === "ADMIN_STUDENTS") return <AdminStudents />;
+  if (DEV_RENDER === "STUDENT_PROFILE") return <StudentProfile />;
+  if (DEV_RENDER === "LOGIN") return <Login />;
+
+  // 🔒 Normal app
   return (
     <BrowserRouter>
       <Routes>
@@ -34,7 +46,6 @@ function App() {
           }
         />
 
-        {/* 403 */}
         <Route path="/403" element={<AccessDenied />} />
       </Routes>
     </BrowserRouter>
